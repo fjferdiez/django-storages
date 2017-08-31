@@ -38,6 +38,9 @@ class AzureStorage(Storage):
     azure_container = setting("AZURE_CONTAINER")
     azure_ssl = setting("AZURE_SSL")
 
+    # adding support for custom storage endpoint
+    azure_endpoint_suffix = setting("AZURE_ENDPOINT_SUFFIX")
+
     def __init__(self, *args, **kwargs):
         super(AzureStorage, self).__init__(*args, **kwargs)
         self._connection = None
@@ -45,8 +48,10 @@ class AzureStorage(Storage):
     @property
     def connection(self):
         if self._connection is None:
-            self._connection = BlobService(
-                self.account_name, self.account_key)
+            if self.azure_endpoint_suffix:
+                self._connection = BlobService(self.account_name, self.account_key, endpoint_suffix=self.azure_endpoint_suffix)
+            else:
+                self._connection = BlobService(self.account_name, self.account_key)
         return self._connection
 
     @property
