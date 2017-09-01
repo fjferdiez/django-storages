@@ -48,7 +48,7 @@ class AzureStorage(Storage):
     @property
     def connection(self):
         if self._connection is None:
-            if self.azure_endpoint_suffix:
+            if self.azure_storage_endpoint_suffix:
                 self._connection = BlobService(self.account_name, self.account_key,  host_base=self.azure_storage_endpoint_suffix)
             else:
                 self._connection = BlobService(self.account_name, self.account_key)
