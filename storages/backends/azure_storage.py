@@ -151,6 +151,11 @@ class AzureStorage(Storage):
     def __init__(self):
         self._service = None
 
+        # set dynamic attributes with values passed in here
+        for name, value in settings.items():
+            if hasattr(self, name):
+                setattr(self, name, value)
+
     @property
     def service(self):
         # This won't open a connection or anything,
