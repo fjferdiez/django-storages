@@ -148,13 +148,14 @@ class AzureStorage(Storage):
     default_content_type = 'application/octet-stream'
     is_emulated = setting('AZURE_EMULATED_MODE', False)
 
-    def __init__(self):
+    def __init__(self, **settings=None):
         self._service = None
 
         # set dynamic attributes with values passed in here
-        for name, value in settings.items():
-            if hasattr(self, name):
-                setattr(self, name, value)
+        if settings is not None:
+            for name, value in settings.items():
+                if hasattr(self, name):
+                    setattr(self, name, value)
 
     @property
     def service(self):
