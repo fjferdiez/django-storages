@@ -41,9 +41,15 @@ class AzureStorage(Storage):
     # adding support for custom storage endpoint
     azure_storage_endpoint_suffix = setting("AZURE_STORAGE_ENDPOINT")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, container=None, url_expiry_secs=None, *args, **kwargs):
+
         super(AzureStorage, self).__init__(*args, **kwargs)
         self._connection = None
+        self.url_expiry_secs = url_expiry_secs
+
+        if container:
+            self.azure_container = container
+
 
     @property
     def connection(self):
@@ -104,14 +110,30 @@ class AzureStorage(Storage):
         return name
 
     def url(self, name):
-        if hasattr(self.connection, 'make_blob_url'):
-            return self.connection.make_blob_url(
-                container_name=self.azure_container,
+
+        sas_token = None
+        if self.url_expiry_secs:
+            now = datetime.utcnow().replace(tzinfo=pytz.utc)
+            expire_at = now + timedelta(seconds=self.url_expiry_secs)
+
+            policy = AccessPolicy()
+            # generate an ISO8601 time string and use split() to remove the sub-second
+            # components as Azure will reject them. Plus add the timezone at the end.
+            policy.expiry = expire_at.isoformat().split('.')[0] + 'Z'
+            policy.permission = 'r'
+
+            sas_token = self.connection.generate_shared_access_signature(
+                self.azure_container,
                 blob_name=name,
-                protocol=self.azure_protocol,
+                shared_access_policy=SharedAccessPolicy(access_policy=policy),
             )
-        else:
-            return "{}{}/{}".format(setting('MEDIA_URL'), self.azure_container, name)
+
+        return self.connection.make_blob_url(
+            container_name=self.azure_container,
+            blob_name=name,
+            protocol=self.azure_protocol,
+            sas_token=sas_token
+        )
 
     def modified_time(self, name):
         try:
@@ -123,3 +145,25 @@ class AzureStorage(Storage):
         modified = datetime.fromtimestamp(mktime(modified))
 
         return modified
+
+    def listdir(self, path):
+        """
+        The base implementation does not have a definition for this method
+        which Open edX requires
+        """
+        if not path:
+            path = None
+
+        blobs = self.connection.list_blobs(
+            container_name=self.azure_container,
+            prefix=path,
+        )
+        results = []
+        for f in blobs:
+            name = f.name
+            if path:
+                name = name.replace(path, '')
+            results.append(name)
+
+        return ((), results)
+
