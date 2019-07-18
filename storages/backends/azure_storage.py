@@ -23,7 +23,7 @@ try:
     from azure.storage.blob.blobservice import BlobService
     from azure.common import AzureMissingResourceHttpError
 except ImportError:
-    from azure.storage import BlobService
+    from azure.storage import BlobService, AccessPolicy, SharedAccessPolicy
     from azure import WindowsAzureMissingResourceError as AzureMissingResourceHttpError
 
 
